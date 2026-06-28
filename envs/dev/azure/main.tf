@@ -5,14 +5,14 @@ terraform {
     organization = "acme-demo"
 
     workspaces {
-      name = "acme-order-dev"
+      name = "acme-order-azure-dev"
     }
   }
 
   required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.0"
     }
 
     random = {
@@ -22,16 +22,17 @@ terraform {
   }
 }
 
-provider "aws" {
-  region = var.aws_region
+provider "azurerm" {
+  features {}
 }
 
 module "order_portal" {
-  source = "../../modules/static-site"
+  source = "../../../modules/azure-static-site"
 
   name            = "acme-order-portal"
   environment     = var.environment
   cost_center     = var.cost_center
   owner           = var.owner
+  azure_region    = var.azure_region
   index_html_path = "${path.module}/index.html"
 }
