@@ -49,9 +49,9 @@ resource "aws_s3_bucket_policy" "public_read" {
 resource "aws_s3_object" "index" {
   bucket       = aws_s3_bucket.site.id
   key          = "index.html"
-  source       = var.index_html_path
+  content      = templatefile(var.index_html_path, { environment = var.environment, cost_center = var.cost_center, owner = var.owner })
   content_type = "text/html"
-  etag         = filemd5(var.index_html_path)
+  etag         = md5(templatefile(var.index_html_path, { environment = var.environment, cost_center = var.cost_center, owner = var.owner }))
 
   tags = local.common_tags
 }
