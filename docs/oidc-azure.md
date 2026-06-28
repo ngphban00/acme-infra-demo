@@ -1,6 +1,6 @@
 # OIDC Dynamic Credentials — Azure (Workload Identity Federation)
 
-Allows workspace `static-site-azure-dev` to authenticate with Azure without
+Allows workspace `acme-apps-azure` to authenticate with Azure without
 storing any long-lived `ARM_CLIENT_SECRET` in HCP Terraform.
 
 Reference: https://developer.hashicorp.com/terraform/cloud-docs/dynamic-provider-credentials/azure-configuration
@@ -75,7 +75,7 @@ Choose scenario: **Other issuer**
 ```
 Issuer:   https://app.terraform.io
 Audience: api://AzureADTokenExchange
-Subject:  organization:ngphban:project:acme-demo:workspace:static-site-azure-dev:run_phase:*
+Subject:  organization:ngphban:project:Default:workspace:acme-apps-azure:run_phase:*
 ```
 
 Or via CLI — create two credentials, one per run phase (wildcard `*` does NOT work
@@ -84,18 +84,18 @@ with "Other issuer" in Azure):
 az ad app federated-credential create \
   --id <object-id> \
   --parameters '{
-    "name": "tfc-static-site-azure-dev-plan",
+    "name": "tfc-acme-apps-azure-plan",
     "issuer": "https://app.terraform.io",
-    "subject": "organization:ngphban:project:acme-demo:workspace:static-site-azure-dev:run_phase:plan",
+    "subject": "organization:ngphban:project:Default:workspace:acme-apps-azure:run_phase:plan",
     "audiences": ["api://AzureADTokenExchange"]
   }'
 
 az ad app federated-credential create \
   --id <object-id> \
   --parameters '{
-    "name": "tfc-static-site-azure-dev-apply",
+    "name": "tfc-acme-apps-azure-apply",
     "issuer": "https://app.terraform.io",
-    "subject": "organization:ngphban:project:acme-demo:workspace:static-site-azure-dev:run_phase:apply",
+    "subject": "organization:ngphban:project:Default:workspace:acme-apps-azure:run_phase:apply",
     "audiences": ["api://AzureADTokenExchange"]
   }'
 ```
@@ -109,7 +109,7 @@ Key rules for subject:
 
 ## Step 4 — Configure workspace variables in HCP Terraform
 
-In workspace `static-site-azure-dev` → Variables → add **Environment variables**:
+In workspace `acme-apps-azure` → Variables → add **Environment variables**:
 
 | Key | Value | Sensitive |
 |-----|-------|-----------|
