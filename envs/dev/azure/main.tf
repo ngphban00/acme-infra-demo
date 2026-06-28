@@ -19,6 +19,16 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.6"
     }
+
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.0"
+    }
+
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.0"
+    }
   }
 }
 
@@ -27,7 +37,7 @@ provider "azurerm" {
 }
 
 module "order_portal" {
-  source = "../../../modules/azure-static-site"
+  source = "../../../modules/azure-app-service"
 
   name            = "acme-order-portal"
   environment     = var.environment
