@@ -2,10 +2,10 @@ terraform {
   required_version = ">= 1.6.0"
 
   cloud {
-    organization = "acme-demo"
+    organization = "ngphban"
 
     workspaces {
-      name = "acme-order-azure-dev"
+      name = "static-site-azure-dev"
     }
   }
 
