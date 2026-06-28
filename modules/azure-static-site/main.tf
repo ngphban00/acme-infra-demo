@@ -29,9 +29,8 @@ resource "azurerm_storage_blob" "index" {
   storage_account_name   = azurerm_storage_account.site.name
   storage_container_name = "$web"
   type                   = "Block"
-  source                 = var.index_html_path
+  source_content         = templatefile(var.index_html_path, { environment = var.environment, cost_center = var.cost_center, owner = var.owner })
   content_type           = "text/html"
-  content_md5            = filemd5(var.index_html_path)
 }
 
 locals {
