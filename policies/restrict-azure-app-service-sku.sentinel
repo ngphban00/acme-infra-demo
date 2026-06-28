@@ -1,0 +1,27 @@
+import "tfplan/v2" as tfplan
+
+# Only F1 (free tier) is permitted
+allowed_skus = ["F1"]
+
+# Collect all azurerm_service_plan resources being created or updated
+service_plans = filter tfplan.resource_changes as _, rc {
+  rc.type is "azurerm_service_plan" and
+  rc.mode is "managed" and
+  (rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# Find violations
+violations = filter service_plans as addr, rc {
+  rc.change.after.sku_name not in allowed_skus
+}
+
+# Print details for each violation
+for violations as addr, rc {
+  print("VIOLATION:", addr,
+    "— sku_name:", rc.change.after.sku_name,
+    "— allowed:", allowed_skus)
+}
+
+main = rule {
+  length(violations) is 0
+}
