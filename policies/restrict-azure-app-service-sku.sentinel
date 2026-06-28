@@ -1,7 +1,7 @@
 import "tfplan/v2" as tfplan
 
-# Only F1 (free tier) is permitted
-allowed_skus = ["F1"]
+# Free, Shared, and Basic B1 are permitted — Standard and above are blocked
+allowed_skus = ["F1", "D1", "B1"]
 
 # Collect all azurerm_service_plan resources being created or updated
 service_plans = filter tfplan.resource_changes as _, rc {

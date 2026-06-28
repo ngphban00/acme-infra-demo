@@ -36,6 +36,6 @@ variable "azure_region" {
 
 variable "sku_name" {
   type        = string
-  description = "App Service Plan SKU"
-  default     = "F1"
+  description = "App Service Plan SKU (max B1 enforced by Sentinel policy)"
+  default     = "B1"
 }

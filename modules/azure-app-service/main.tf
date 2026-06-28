@@ -32,7 +32,7 @@ resource "azurerm_linux_web_app" "site" {
   zip_deploy_file     = data.archive_file.site.output_path
 
   site_config {
-    always_on        = false
+    always_on        = true
     app_command_line = "gunicorn --bind 0.0.0.0:8080 wsgi:application"
 
     application_stack {
