@@ -13,17 +13,14 @@
 variable "arm_client_id" {
   type        = string
   description = "Azure App Registration client ID (set via TFC Variable Set)"
-  default     = ""
 }
 
 variable "arm_tenant_id" {
   type        = string
   description = "Azure tenant ID (set via TFC Variable Set)"
-  default     = ""
 }
 
 variable "arm_subscription_id" {
   type        = string
   description = "Azure subscription ID (set via TFC Variable Set)"
-  default     = ""
 }

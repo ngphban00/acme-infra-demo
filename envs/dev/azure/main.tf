@@ -24,7 +24,10 @@ terraform {
 
 provider "azurerm" {
   features {}
-  use_oidc = true
+  use_oidc        = true
+  client_id       = var.arm_client_id
+  tenant_id       = var.arm_tenant_id
+  subscription_id = var.arm_subscription_id
 }
 
 module "order_portal" {
