@@ -75,7 +75,7 @@ Choose scenario: **Other issuer**
 ```
 Issuer:   https://app.terraform.io
 Audience: api://AzureADTokenExchange
-Subject:  organization:ngphban:workspace:static-site-azure-dev:run_phase:*
+Subject:  organization:ngphban:project:acme-demo:workspace:static-site-azure-dev:run_phase:*
 ```
 
 Or via CLI:
@@ -85,12 +85,13 @@ az ad app federated-credential create \
   --parameters '{
     "name": "tfc-static-site-azure-dev",
     "issuer": "https://app.terraform.io",
-    "subject": "organization:ngphban:workspace:static-site-azure-dev:run_phase:*",
+    "subject": "organization:ngphban:project:acme-demo:workspace:static-site-azure-dev:run_phase:*",
     "audiences": ["api://AzureADTokenExchange"]
   }'
 ```
 
-The `subject` must exactly match the HCP Terraform org and workspace name.
+The `subject` must exactly match the HCP Terraform org, project, and workspace name.
+If the workspace belongs to a project, the subject MUST include `project:<name>:`.
 Use `run_phase:plan` / `run_phase:apply` to separate permissions per phase.
 
 ---
