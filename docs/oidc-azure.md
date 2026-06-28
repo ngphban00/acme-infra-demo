@@ -1,44 +1,58 @@
-# OIDC Dynamic Credentials — Azure
+# OIDC Dynamic Credentials — Azure (Workload Identity Federation)
 
-Allows workspace `acme-order-azure-dev` to authenticate with Azure without
-storing any client secret in Terraform Cloud.
+Allows workspace `static-site-azure-dev` to authenticate with Azure without
+storing any long-lived `ARM_CLIENT_SECRET` in HCP Terraform.
+
+Reference: https://developer.hashicorp.com/terraform/cloud-docs/dynamic-provider-credentials/azure-configuration
+
+---
+
+## Requirements
+
+- AzureRM provider >= 3.25.0 (use `~> 3.100` to be safe)
+- HCP Terraform workspace
+- Azure App Registration + Service Principal
+- Federated Identity Credential in Microsoft Entra ID
 
 ---
 
 ## How it works
 
 ```
-Terraform Cloud run
+HCP Terraform run
   │
-  ├─ generates JWT token containing: org, workspace, run phase
+  ├─ generates short-lived OIDC token
+  │    (issuer: https://app.terraform.io)
   │
-  └─► Azure AD
-        ├─ verifies token via Workload Identity Federation
-        └─► returns short-lived access token (15 min)
-              └─► azurerm provider uses token to call Azure API
+  └─► Azure AD validates federated credential
+        (issuer / audience / subject must match)
+        │
+        └─► issues short-lived access token
+              └─► AzureRM provider provisions resources
+                    token expires after run
 ```
 
 ---
 
-## Step 1 — Create an App Registration
+## Step 1 — Create App Registration
 
-```bash
-az ad app create --display-name "terraform-cloud-acme-order-azure-dev"
+In Azure Portal: Microsoft Entra ID → App registrations → New registration
+
+```
+Name: hcp-terraform-acme-order-dev
 ```
 
-Note the `appId` (client ID) and `id` (object ID) from the output.
+Note the **Application (client) ID**, **Directory (tenant) ID**, and your **Subscription ID**.
 
----
-
-## Step 2 — Create a Service Principal
-
+Or via CLI:
 ```bash
+az ad app create --display-name "hcp-terraform-acme-order-dev"
 az ad sp create --id <appId>
 ```
 
 ---
 
-## Step 3 — Assign Contributor role on the subscription
+## Step 2 — Assign RBAC role
 
 ```bash
 az role assignment create \
@@ -47,59 +61,77 @@ az role assignment create \
   --scope /subscriptions/<subscription-id>
 ```
 
-For least-privilege, replace `Contributor` with a custom role scoped to only
-create Resource Groups and Storage Accounts.
+For least-privilege, use a custom role scoped to only create Resource Groups
+and Storage Accounts.
 
 ---
 
-## Step 4 — Add a Federated Credential (Workload Identity Federation)
+## Step 3 — Add Federated Identity Credential
 
+In Azure Portal: App Registration → Certificates & secrets → Federated credentials → Add credential
+
+Choose scenario: **Other issuer**
+
+```
+Issuer:   https://app.terraform.io
+Audience: api://AzureADTokenExchange
+Subject:  organization:ngphban:workspace:static-site-azure-dev:run_phase:*
+```
+
+Or via CLI:
 ```bash
 az ad app federated-credential create \
   --id <object-id> \
   --parameters '{
-    "name": "tfc-acme-order-azure-dev",
+    "name": "tfc-static-site-azure-dev",
     "issuer": "https://app.terraform.io",
-    "subject": "organization:acme-demo:workspace:acme-order-azure-dev:run_phase:*",
+    "subject": "organization:ngphban:workspace:static-site-azure-dev:run_phase:*",
     "audiences": ["api://AzureADTokenExchange"]
   }'
 ```
 
-The `subject` must exactly match the workspace name in Terraform Cloud.
-`:run_phase:*` allows both plan and apply.
-To separate plan/apply permissions, create two federated credentials with
-`run_phase:plan` and `run_phase:apply` and assign different roles to each.
+The `subject` must exactly match the HCP Terraform org and workspace name.
+Use `run_phase:plan` / `run_phase:apply` to separate permissions per phase.
 
 ---
 
-## Step 5 — Create a Variable Set in Terraform Cloud
+## Step 4 — Configure workspace variables in HCP Terraform
 
-Go to **Organization Settings → Variable Sets → New Variable Set**.
-
-Name: `azure-oidc-dev`
-Scope: Project `Azure` (or workspace `acme-order-azure-dev`)
-
-Add 4 **Environment variables**:
+In workspace `static-site-azure-dev` → Variables → add **Environment variables**:
 
 | Key | Value | Sensitive |
 |-----|-------|-----------|
 | `TFC_AZURE_PROVIDER_AUTH` | `true` | No |
-| `TFC_AZURE_CLIENT_ID` | `<appId>` | No |
-| `TFC_AZURE_TENANT_ID` | `<tenant-id>` | No |
-| `TFC_AZURE_SUBSCRIPTION_ID` | `<subscription-id>` | No |
+| `TFC_AZURE_RUN_CLIENT_ID` | `<Application client ID>` | No |
+| `ARM_TENANT_ID` | `<Directory tenant ID>` | No |
+| `ARM_SUBSCRIPTION_ID` | `<Subscription ID>` | No |
 
-`ARM_CLIENT_SECRET` is not needed — this is the key difference from static credentials.
+Note: `TFC_AZURE_RUN_CLIENT_ID` — NOT `TFC_AZURE_CLIENT_ID`.
+No `ARM_CLIENT_SECRET` needed — this is the key benefit.
+
+---
+
+## Step 5 — Provider config (minimal)
+
+```hcl
+provider "azurerm" {
+  features {}
+}
+```
+
+No `use_oidc = true` needed in provider block. HCP Terraform injects
+`ARM_USE_OIDC`, `ARM_OIDC_TOKEN`, `ARM_CLIENT_ID` automatically when
+`TFC_AZURE_PROVIDER_AUTH=true` is set.
 
 ---
 
 ## Step 6 — Verify
 
-Trigger a run in workspace `acme-order-azure-dev`.
-The plan log should contain:
+Trigger a run. Plan log should show:
 
 ```
 Configured Azure credentials from dynamic OIDC token
 ```
 
-If you see error `AADSTS70021`, the `subject` in the federated credential does
-not match the workspace name — revisit Step 4.
+If you see `AADSTS70021` → subject in federated credential does not match
+workspace name — revisit Step 3.
