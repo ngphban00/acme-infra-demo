@@ -17,46 +17,31 @@ resource "azurerm_service_plan" "site" {
   tags                = local.common_tags
 }
 
-# Package rendered HTML + server script into zip for deployment
-# Using explicit source blocks avoids the source_dir containing its own output_path
-data "archive_file" "site" {
-  type        = "zip"
-  output_path = "${path.module}/.build/site.zip"
-
-  source {
-    content = templatefile(var.index_html_path, {
-      environment = var.environment
-      cost_center = var.cost_center
-      owner       = var.owner
-    })
-    filename = "index.html"
-  }
-
-  source {
-    content  = file("${path.module}/server.py")
-    filename = "server.py"
-  }
-}
-
 resource "azurerm_linux_web_app" "site" {
   name                = "${var.name}-${var.environment}-${random_id.suffix.hex}"
   resource_group_name = azurerm_resource_group.site.name
   location            = azurerm_resource_group.site.location
   service_plan_id     = azurerm_service_plan.site.id
-  zip_deploy_file     = data.archive_file.site.output_path
 
   site_config {
-    always_on        = false # required for F1 free tier
-    app_command_line = "python3 /home/site/wwwroot/server.py"
+    always_on = false
 
     application_stack {
-      python_version = "3.12"
+      docker_image_name   = "nginx:alpine"
+      docker_registry_url = "https://index.docker.io"
     }
+
+    # Write HTML from env var then start nginx in foreground
+    app_command_line = "sh -c \"printenv INDEX_HTML_B64 | base64 -d > /usr/share/nginx/html/index.html && nginx -g 'daemon off;'\""
   }
 
   app_settings = {
-    "WEBSITES_PORT"                  = "8080"
-    "SCM_DO_BUILD_DURING_DEPLOYMENT" = "false"
+    "WEBSITES_PORT"  = "80"
+    "INDEX_HTML_B64" = base64encode(templatefile(var.index_html_path, {
+      environment = var.environment
+      cost_center = var.cost_center
+      owner       = var.owner
+    }))
   }
 
   tags = local.common_tags
