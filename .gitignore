@@ -9,6 +9,9 @@
 *.tfvars
 *.tfvars.json
 
+# Module build artifacts
+.build/
+
 # Crash logs
 crash.log
 crash.*.log

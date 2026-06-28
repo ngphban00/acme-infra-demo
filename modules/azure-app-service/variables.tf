@@ -5,7 +5,7 @@ variable "name" {
 
 variable "environment" {
   type        = string
-  description = "Environment name, for example dev or prod"
+  description = "Environment name"
 
   validation {
     condition     = contains(["dev", "test", "staging", "prod"], var.environment)
@@ -25,11 +25,17 @@ variable "owner" {
 
 variable "index_html_path" {
   type        = string
-  description = "Path to index.html"
+  description = "Path to index.html template"
 }
 
 variable "azure_region" {
   type        = string
   description = "Azure region"
   default     = "southeastasia"
+}
+
+variable "sku_name" {
+  type        = string
+  description = "App Service Plan SKU"
+  default     = "F1"
 }
