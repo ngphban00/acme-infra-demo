@@ -17,22 +17,25 @@ resource "azurerm_service_plan" "site" {
   tags                = local.common_tags
 }
 
-# Render HTML template and write to .build/ for packaging
-resource "local_file" "index" {
-  content = templatefile(var.index_html_path, {
-    environment = var.environment
-    cost_center = var.cost_center
-    owner       = var.owner
-  })
-  filename = "${path.module}/.build/index.html"
-}
-
-# Package rendered HTML into zip for zip deploy
+# Package rendered HTML + server script into zip for deployment
+# Using explicit source blocks avoids the source_dir containing its own output_path
 data "archive_file" "site" {
   type        = "zip"
-  source_dir  = "${path.module}/.build"
   output_path = "${path.module}/.build/site.zip"
-  depends_on  = [local_file.index]
+
+  source {
+    content = templatefile(var.index_html_path, {
+      environment = var.environment
+      cost_center = var.cost_center
+      owner       = var.owner
+    })
+    filename = "index.html"
+  }
+
+  source {
+    content  = file("${path.module}/server.py")
+    filename = "server.py"
+  }
 }
 
 resource "azurerm_linux_web_app" "site" {
@@ -44,7 +47,7 @@ resource "azurerm_linux_web_app" "site" {
 
   site_config {
     always_on        = false # required for F1 free tier
-    app_command_line = "python3 -m http.server 8080"
+    app_command_line = "python3 /home/site/wwwroot/server.py"
 
     application_stack {
       python_version = "3.12"
