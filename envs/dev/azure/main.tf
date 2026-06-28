@@ -24,7 +24,7 @@ terraform {
 
 provider "azurerm" {
   features {}
-  subscription_id = "e3c6dd58-2eb8-4e7b-957f-6a4945309c10"
+  use_oidc = true
 }
 
 module "order_portal" {
