@@ -78,21 +78,32 @@ Audience: api://AzureADTokenExchange
 Subject:  organization:ngphban:project:acme-demo:workspace:static-site-azure-dev:run_phase:*
 ```
 
-Or via CLI:
+Or via CLI — create two credentials, one per run phase (wildcard `*` does NOT work
+with "Other issuer" in Azure):
 ```bash
 az ad app federated-credential create \
   --id <object-id> \
   --parameters '{
-    "name": "tfc-static-site-azure-dev",
+    "name": "tfc-static-site-azure-dev-plan",
     "issuer": "https://app.terraform.io",
-    "subject": "organization:ngphban:project:acme-demo:workspace:static-site-azure-dev:run_phase:*",
+    "subject": "organization:ngphban:project:acme-demo:workspace:static-site-azure-dev:run_phase:plan",
+    "audiences": ["api://AzureADTokenExchange"]
+  }'
+
+az ad app federated-credential create \
+  --id <object-id> \
+  --parameters '{
+    "name": "tfc-static-site-azure-dev-apply",
+    "issuer": "https://app.terraform.io",
+    "subject": "organization:ngphban:project:acme-demo:workspace:static-site-azure-dev:run_phase:apply",
     "audiences": ["api://AzureADTokenExchange"]
   }'
 ```
 
-The `subject` must exactly match the HCP Terraform org, project, and workspace name.
-If the workspace belongs to a project, the subject MUST include `project:<name>:`.
-Use `run_phase:plan` / `run_phase:apply` to separate permissions per phase.
+Key rules for subject:
+- Must include `project:<name>:` if workspace belongs to a project in HCP Terraform
+- Wildcard `run_phase:*` does NOT work — create separate credentials for `plan` and `apply`
+- Allow 1-2 minutes for Azure AD propagation before triggering the first run
 
 ---
 
