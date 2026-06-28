@@ -1,0 +1,39 @@
+import "tfplan/v2" as tfplan
+
+# Only free-tier eligible instance types are permitted
+allowed_types = ["t2.micro", "t3.micro"]
+
+# Collect all azurerm_elastic_beanstalk_environment resources being created or updated
+eb_envs = filter tfplan.resource_changes as _, rc {
+  rc.type is "aws_elastic_beanstalk_environment" and
+  rc.mode is "managed" and
+  (rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# EB instance type lives inside the settings list
+# Each setting: { namespace, name, value }
+violations = filter eb_envs as addr, rc {
+  instance_settings = filter rc.change.after.setting as s {
+    s.namespace is "aws:autoscaling:launchconfiguration" and
+    s.name      is "InstanceType"
+  }
+  any instance_settings as s {
+    s.value not in allowed_types
+  }
+}
+
+for violations as addr, rc {
+  instance_settings = filter rc.change.after.setting as s {
+    s.namespace is "aws:autoscaling:launchconfiguration" and
+    s.name      is "InstanceType"
+  }
+  for instance_settings as s {
+    print("VIOLATION:", addr,
+      "— InstanceType:", s.value,
+      "— allowed:", allowed_types)
+  }
+}
+
+main = rule {
+  length(violations) is 0
+}
