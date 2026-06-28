@@ -24,7 +24,6 @@ terraform {
 
 provider "azurerm" {
   features {}
-  use_oidc = true
 }
 
 module "order_portal" {
